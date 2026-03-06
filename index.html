@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClassroomAI · IES Prado Mayor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --ink: #1a1a2e;
+  --parchment: #faf7f2;
+  --gold: #c9a84c;
+  --gold-light: #e8d5a3;
+  --terracotta: #c0573a;
+  --sage: #5a7a6b;
+  --marble: #f0ece4;
+  --border: #ddd8cc;
+  --ai-purple: #7c3aed;
+  --ai-light: #ede9fe;
+  --sidebar: 240px;
+  --top: 60px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--parchment); color: var(--ink); min-height: 100vh; }
+
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--top);
+  background: var(--ink); color: var(--gold-light);
+  display: flex; align-items: center; gap: 16px; padding: 0 24px;
+  z-index: 100; border-bottom: 2px solid var(--gold);
+}
+#topbar .logo { font-family: 'DM Serif Display', serif; font-size: 1.2rem; white-space: nowrap; }
+#topbar .logo em { color: var(--gold); font-style: normal; }
+#course-select {
+  margin-left: auto; background: rgba(255,255,255,.08);
+  border: 1px solid rgba(201,168,76,.4); color: var(--gold-light);
+  border-radius: 6px; padding: 7px 14px; font-size: .85rem; cursor: pointer;
+  max-width: 300px; font-family: 'DM Sans', sans-serif;
+}
+#course-select option { color: var(--ink); background: #fff; }
+.top-btn {
+  background: rgba(201,168,76,.15); border: 1px solid rgba(201,168,76,.4);
+  color: var(--gold-light); border-radius: 6px; padding: 7px 14px;
+  font-size: .82rem; cursor: pointer; font-family: 'DM Sans', sans-serif;
+  transition: background .2s; white-space: nowrap;
+}
+.top-btn:hover { background: rgba(201,168,76,.25); }
+.top-btn.danger { border-color: rgba(192,87,58,.5); color: #f9a89a; }
+
+#login-screen {
+  position: fixed; inset: 0; background: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999;
+}
+#login-screen .brand { font-family: 'DM Serif Display', serif; font-size: 3rem; color: var(--gold-light); margin-bottom: 8px; text-align: center; }
+#login-screen .brand em { color: var(--gold); font-style: normal; }
+#login-screen .sub { color: rgba(255,255,255,.5); font-size: .95rem; margin-bottom: 48px; }
+#login-screen .divider { width: 60px; height: 2px; background: var(--gold); margin: 0 auto 40px; }
+.google-btn {
+  display: flex; align-items: center; gap: 12px; background: #fff; color: #3c4043;
+  border: none; border-radius: 8px; padding: 14px 28px; font-size: .95rem; font-weight: 500;
+  cursor: pointer; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,.3); transition: box-shadow .2s;
+}
+.google-btn:hover { box-shadow: 0 6px 30px rgba(0,0,0,.4); }
+.google-btn svg { width: 20px; height: 20px; }
+#login-screen .note { margin-top: 24px; font-size: .8rem; color: rgba(255,255,255,.3); text-align: center; max-width: 320px; line-height: 1.6; }
+
+#sidebar {
+  position: fixed; top: var(--top); left: 0; bottom: 0; width: var(--sidebar);
+  background: var(--marble); border-right: 1px solid var(--border); padding: 20px 0; overflow-y: auto;
+}
+.nav-section { padding: 12px 20px 6px; font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); opacity: .8; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font-size: .875rem; color: #555; transition: all .15s; border-left: 3px solid transparent; }
+.nav-item:hover { background: var(--parchment); color: var(--ink); }
+.nav-item.active { background: var(--parchment); color: var(--ink); border-left-color: var(--gold); font-weight: 500; }
+.nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+#main { margin-left: var(--sidebar); padding-top: var(--top); min-height: 100vh; }
+.panel { display: none; padding: 32px; max-width: 900px; }
+.panel.active { display: block; }
+.panel-header { margin-bottom: 28px; }
+.panel-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--ink); }
+.panel-header p { color: #777; font-size: .9rem; margin-top: 4px; }
+.panel-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+.panel-top h2 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; }
+.panel-top p { color: #777; font-size: .9rem; margin-top: 4px; }
+
+.card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 14px; transition: box-shadow .2s; }
+.card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.card-title { font-weight: 600; font-size: .95rem; }
+.card-meta { font-size: .8rem; color: #888; margin-top: 4px; }
+.card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 7px; font-size: .85rem; font-weight: 500; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; transition: all .15s; }
+.btn-primary { background: var(--ink); color: #fff; }
+.btn-primary:hover { background: #2d2d4e; }
+.btn-gold { background: var(--gold); color: var(--ink); }
+.btn-gold:hover { background: #b8943e; }
+.btn-ghost { background: transparent; color: #666; border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--marble); }
+.btn-ai { background: var(--ai-purple); color: #fff; }
+.btn-ai:hover { background: #6d28d9; }
+.btn-success { background: var(--sage); color: #fff; }
+.btn-success:hover { background: #4a6a5b; }
+.btn-sm { padding: 5px 10px; font-size: .78rem; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: .83rem; font-weight: 600; margin-bottom: 6px; color: #444; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 13px; border: 1px solid var(--border); border-radius: 7px; font-size: .9rem; background: var(--parchment); font-family: 'DM Sans', sans-serif; transition: border .15s; color: var(--ink); }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--gold); background: #fff; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { padding: 5px 14px; border-radius: 99px; font-size: .8rem; cursor: pointer; border: 1px solid var(--border); background: var(--parchment); transition: all .15s; color: #555; }
+.pill.active { background: var(--ink); color: var(--gold-light); border-color: var(--ink); }
+
+.badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+.bg-green { background: #d1fae5; color: #065f46; }
+.bg-amber { background: #fef3c7; color: #92400e; }
+.bg-blue { background: #dbeafe; color: #1e40af; }
+.bg-purple { background: var(--ai-light); color: #5b21b6; }
+.bg-red { background: #fee2e2; color: #991b1b; }
+.bg-gray { background: #f1f5f9; color: #475569; }
+
+.ai-box { background: var(--ai-light); border: 1px solid #c4b5fd; border-radius: 10px; padding: 20px; margin-top: 16px; display: none; white-space: pre-wrap; font-size: .88rem; line-height: 1.75; }
+.ai-box.show { display: block; }
+.ai-label { font-size: .72rem; font-weight: 700; color: var(--ai-purple); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+.sub-content { background: var(--marble); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: .85rem; line-height: 1.7; max-height: 260px; overflow-y: auto; white-space: pre-wrap; display: none; margin-top: 12px; }
+.sub-content.show { display: block; }
+
+.grade-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.grade-row input[type=number] { width: 80px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 1rem; text-align: center; font-family: 'DM Sans', sans-serif; }
+
+.empty { text-align: center; padding: 56px 0; color: #aaa; }
+.empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.empty p { font-size: .9rem; }
+
+.spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+.spinner-dark { border-color: rgba(0,0,0,.15); border-top-color: var(--ink); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#toast { position: fixed; bottom: 24px; right: 24px; background: var(--ink); color: var(--gold-light); padding: 12px 20px; border-radius: 8px; font-size: .875rem; z-index: 9999; transform: translateY(80px); opacity: 0; transition: all .3s; max-width: 320px; border: 1px solid var(--gold); }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.ok { background: var(--sage); border-color: #3d5e51; color: #fff; }
+#toast.err { background: var(--terracotta); border-color: #a04530; color: #fff; }
+
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; z-index: 500; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: 14px; padding: 30px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; box-shadow: 0 24px 64px rgba(0,0,0,.2); }
+.modal h3 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; margin-bottom: 20px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+.config-block { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 22px; margin-bottom: 20px; }
+.config-block h3 { font-size: .95rem; font-weight: 600; margin-bottom: 14px; }
+
+@media (max-width: 700px) {
+  #sidebar { display: none; }
+  #main { margin-left: 0; }
+  .form-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="brand">Classroom<em>AI</em></div>
+  <div class="sub">IES Prado Mayor · Panel docente con IA</div>
+  <div class="divider"></div>
+  <button class="google-btn" onclick="signIn()">
+    <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+    Entrar con Google
+  </button>
+  <div class="note">Usa tu cuenta de murciaeduca.es para acceder a tus clases de Classroom</div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar" style="display:none">
+  <div class="logo">Classroom<em>AI</em></div>
+  <select id="course-select" onchange="selectCourse(this.value)">
+    <option value="">— Cargando clases… —</option>
+  </select>
+  <button class="top-btn" onclick="showPanel('config')">⚙️ Config</button>
+  <button class="top-btn danger" onclick="signOut()">Salir</button>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <nav id="sidebar">
+    <div class="nav-section">Gestión</div>
+    <div class="nav-item active" id="nav-overview" onclick="showPanel('overview')"><span class="nav-icon">🏛️</span> Inicio</div>
+    <div class="nav-item" id="nav-tasks" onclick="showPanel('tasks')"><span class="nav-icon">📝</span> Tareas</div>
+    <div class="nav-item" id="nav-materials" onclick="showPanel('materials')"><span class="nav-icon">📚</span> Materiales</div>
+    <div class="nav-item" id="nav-submissions" onclick="showPanel('submissions')"><span class="nav-icon">📬</span> Entregas</div>
+    <div class="nav-section" style="margin-top:12px">Con IA</div>
+    <div class="nav-item" id="nav-ai-correct" onclick="showPanel('ai-correct')"><span class="nav-icon">🤖</span> Corregir</div>
+    <div class="nav-item" id="nav-ai-task" onclick="showPanel('ai-task')"><span class="nav-icon">✨</span> Crear tarea</div>
+    <div class="nav-item" id="nav-ai-material" onclick="showPanel('ai-material')"><span class="nav-icon">📖</span> Crear material</div>
+    <div class="nav-item" id="nav-ai-questions" onclick="showPanel('ai-questions')"><span class="nav-icon">❓</span> Preguntas</div>
+    <div class="nav-section" style="margin-top:12px">Sistema</div>
+    <div class="nav-item" id="nav-config" onclick="showPanel('config')"><span class="nav-icon">⚙️</span> Configuración</div>
+  </nav>
+
+  <main id="main">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="panel-overview">
+      <div class="panel-header"><h2>🏛️ Bienvenido</h2><p>Selecciona una clase para empezar</p></div>
+      <div id="overview-body"><div class="empty"><div class="empty-icon">📚</div><p>Selecciona una clase en la barra superior</p></div></div>
+    </div>
+
+    <!-- TAREAS -->
+    <div class="panel" id="panel-tasks">
+      <div class="panel-top">
+        <div><h2>📝 Tareas</h2><p id="tasks-sub">Tareas de la clase</p></div>
+        <button class="btn btn-primary" onclick="openModal('modal-task')">+ Nueva tarea</button>
+      </div>
+      <div id="tasks-list"><div class="empty"><div class="empty-icon">📝</div><p>Selecciona una clase</p></div></div>
+    </div>
+
+    <!-- MATERIALES -->
+    <div class="panel" id="panel-materials">
+      <div class="panel-top">
+        <div><h2>📚 Materiales</h2><p>Recursos publicados</p></div>
+        <button class="btn btn-primary" onclick="openModal('modal-material')">+ Nuevo material</button>
+      </div>
+      <div id="materials-list"><div class="empty"><div class="empty-icon">📚</div><p>Selecciona una clase</p></div></div>
+    </div>
+
+    <!-- ENTREGAS -->
+    <div class="panel" id="panel-submissions">
+      <div class="panel-header"><h2>📬 Entregas</h2><p>Revisa las entregas de tus alumnos</p></div>
+      <div class="form-group" style="max-width:420px">
+        <label>Selecciona una tarea</label>
+        <select id="sub-task-sel" onchange="loadSubmissions(this.value)"><option value="">— Selecciona una clase primero —</option></select>
+      </div>
+      <div id="submissions-list"><div class="empty"><div class="empty-icon">📬</div><p>Selecciona una tarea</p></div></div>
+    </div>
+
+    <!-- CORREGIR CON IA -->
+    <div class="panel" id="panel-ai-correct">
+      <div class="panel-header"><h2>🤖 Corregir con IA</h2><p>Corrección automática con feedback pedagógico</p></div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group"><label>Tarea</label><select id="ac-task" onchange="loadCorrectSubs(this.value)"><option value="">— Selecciona —</option></select></div>
+        <div class="form-group"><label>Alumno/a</label><select id="ac-sub"><option value="">— Primero elige tarea —</option></select></div>
+      </div>
+      <button class="btn btn-ghost" style="margin-bottom:16px" onclick="loadSubForCorrection()">📥 Cargar entrega desde Classroom</button>
+      <div id="ac-loaded" style="display:none">
+        <div class="card"><div class="card-title" id="ac-student"></div><div class="sub-content show" id="ac-content"></div></div>
+      </div>
+      <div style="margin-top:16px">
+        <div class="form-group"><label>Asignatura</label>
+          <div class="pill-row" id="ac-subject-pills">
+            <div class="pill active" onclick="setPill(this,'ac-subject-pills')">Cultura Clásica</div>
+            <div class="pill" onclick="setPill(this,'ac-subject-pills')">Latín</div>
+            <div class="pill" onclick="setPill(this,'ac-subject-pills')">Griego</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Nota máxima</label><input type="number" id="ac-maxpts" value="10" min="1" max="100"></div>
+          <div class="form-group"><label>Nombre de la tarea</label><input type="text" id="ac-title" placeholder="Ej: Análisis de Virgilio"></div>
+        </div>
+        <div class="form-group"><label>O pega aquí el texto del alumno</label><textarea id="ac-paste" rows="5" placeholder="Texto de la entrega…"></textarea></div>
+      </div>
+      <button class="btn btn-ai" id="btn-correct" onclick="runCorrection()">🤖 Corregir con IA</button>
+      <div class="ai-box" id="ac-output"><div class="ai-label">✨ Corrección generada por IA</div><div id="ac-output-text"></div></div>
+      <div id="ac-grade-row" style="display:none">
+        <div class="grade-row">
+          <span style="font-weight:600">Calificar y devolver:</span>
+          <input type="number" id="ac-grade" min="0" max="100" placeholder="Nota">
+          <span id="ac-grade-max">/ 10</span>
+          <button class="btn btn-success" onclick="submitGrade()">✅ Guardar nota</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREAR TAREA IA -->
+    <div class="panel" id="panel-ai-task">
+      <div class="panel-header"><h2>✨ Crear tarea con IA</h2><p>Genera enunciados, instrucciones y rúbricas</p></div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>Asignatura</label><select id="at-subject"><option>Cultura Clásica (3º ESO)</option><option>Latín II (2º Bachillerato)</option><option>Griego I (1º Bachillerato)</option></select></div>
+          <div class="form-group"><label>Nivel</label><select id="at-level"><option>3º ESO</option><option>1º Bachillerato</option><option>2º Bachillerato</option></select></div>
+        </div>
+        <div class="form-group"><label>Tema</label><input type="text" id="at-topic" placeholder="Ej: Análisis morfosintáctico de Eutropio…"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Tipo</label><select id="at-type"><option>Análisis de texto</option><option>Traducción comentada</option><option>Redacción</option><option>Investigación</option><option>Preguntas de comprensión</option><option>Presentación oral</option></select></div>
+          <div class="form-group"><label>Duración</label><input type="text" id="at-duration" placeholder="Ej: una sesión…"></div>
+        </div>
+        <button class="btn btn-ai" id="btn-at" onclick="runCreateTask()">✨ Generar tarea</button>
+      </div>
+      <div class="ai-box" id="at-output"><div class="ai-label">✨ Tarea generada</div><div id="at-output-text"></div></div>
+      <div id="at-post" style="display:none;margin-top:14px"><button class="btn btn-primary" onclick="publishGeneratedTask()">📤 Publicar en Classroom</button></div>
+    </div>
+
+    <!-- CREAR MATERIAL IA -->
+    <div class="panel" id="panel-ai-material">
+      <div class="panel-header"><h2>📖 Crear material con IA</h2><p>Apuntes, fichas, esquemas listos para clase</p></div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>Asignatura</label><select id="am-subject"><option>Cultura Clásica (3º ESO)</option><option>Latín II (2º Bachillerato)</option><option>Griego I (1º Bachillerato)</option></select></div>
+          <div class="form-group"><label>Nivel</label><select id="am-level"><option>3º ESO</option><option>1º Bachillerato</option><option>2º Bachillerato</option></select></div>
+        </div>
+        <div class="form-group"><label>Tema</label><input type="text" id="am-topic" placeholder="Ej: Declinaciones griegas…"></div>
+        <div class="form-group"><label>Tipo de material</label>
+          <div class="pill-row" id="am-type-pills">
+            <div class="pill active" onclick="setPill(this,'am-type-pills')">📄 Apuntes</div>
+            <div class="pill" onclick="setPill(this,'am-type-pills')">📋 Ficha</div>
+            <div class="pill" onclick="setPill(this,'am-type-pills')">🗂️ Esquema</div>
+            <div class="pill" onclick="setPill(this,'am-type-pills')">📖 Resumen</div>
+            <div class="pill" onclick="setPill(this,'am-type-pills')">📜 Glosario</div>
+            <div class="pill" onclick="setPill(this,'am-type-pills')">🔍 Guía de estudio</div>
+          </div>
+        </div>
+        <button class="btn btn-ai" id="btn-am" onclick="runCreateMaterial()">✨ Generar material</button>
+      </div>
+      <div class="ai-box" id="am-output"><div class="ai-label">✨ Material generado</div><div id="am-output-text"></div></div>
+      <div id="am-post" style="display:none;margin-top:14px"><button class="btn btn-primary" onclick="publishGeneratedMaterial()">📤 Publicar en Classroom</button></div>
+    </div>
+
+    <!-- PREGUNTAS -->
+    <div class="panel" id="panel-ai-questions">
+      <div class="panel-header"><h2>❓ Generar preguntas</h2><p>Baterías de preguntas para evaluación o repaso</p></div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>Asignatura</label><select id="aq-subject"><option>Cultura Clásica (3º ESO)</option><option>Latín II (2º Bachillerato)</option><option>Griego I (1º Bachillerato)</option></select></div>
+          <div class="form-group"><label>Nivel</label><select id="aq-level"><option>3º ESO</option><option>1º Bachillerato</option><option>2º Bachillerato</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Tema</label><input type="text" id="aq-topic" placeholder="Ej: Morfología verbal griega…"></div>
+          <div class="form-group"><label>Número</label><input type="number" id="aq-num" value="5" min="1" max="20"></div>
+        </div>
+        <div class="form-group"><label>Tipo</label>
+          <div class="pill-row" id="aq-type-pills">
+            <div class="pill active" onclick="setPill(this,'aq-type-pills')">Respuesta corta</div>
+            <div class="pill" onclick="setPill(this,'aq-type-pills')">Desarrollo</div>
+            <div class="pill" onclick="setPill(this,'aq-type-pills')">V/F</div>
+            <div class="pill" onclick="setPill(this,'aq-type-pills')">Opción múltiple</div>
+            <div class="pill" onclick="setPill(this,'aq-type-pills')">Análisis de texto</div>
+          </div>
+        </div>
+        <button class="btn btn-ai" id="btn-aq" onclick="runQuestions()">✨ Generar preguntas</button>
+      </div>
+      <div class="ai-box" id="aq-output"><div class="ai-label">✨ Preguntas generadas</div><div id="aq-output-text"></div></div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="panel" id="panel-config">
+      <div class="panel-header"><h2>⚙️ Configuración</h2></div>
+      <div class="config-block">
+        <h3>🔑 API Key de Anthropic (Claude)</h3>
+        <p style="font-size:.85rem;color:#777;margin-bottom:14px">Consíguela en <a href="https://console.anthropic.com" target="_blank" style="color:var(--ai-purple)">console.anthropic.com</a> — se guarda solo en tu navegador.</p>
+        <div class="form-row" style="align-items:flex-end">
+          <div class="form-group" style="margin:0"><label>API Key</label><input type="password" id="cfg-key" placeholder="sk-ant-..."></div>
+          <button class="btn btn-gold" onclick="saveKey()">💾 Guardar</button>
+        </div>
+        <div id="key-status" style="margin-top:10px;font-size:.82rem;color:#888">—</div>
+      </div>
+      <div class="config-block">
+        <h3>👤 Sesión activa</h3>
+        <div id="cfg-user" style="font-size:.9rem;color:#555">—</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="signOut()">Cerrar sesión</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modal-task">
+  <div class="modal">
+    <h3>📝 Nueva tarea</h3>
+    <div class="form-group"><label>Título</label><input type="text" id="mt-title" placeholder="Título de la tarea"></div>
+    <div class="form-group"><label>Descripción</label><textarea id="mt-desc" rows="5" placeholder="Instrucciones…"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha de entrega</label><input type="date" id="mt-due"></div>
+      <div class="form-group"><label>Puntos máximos</label><input type="number" id="mt-pts" value="10"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-task')">Cancelar</button>
+      <button class="btn btn-primary" onclick="publishTask()">📤 Publicar</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-material">
+  <div class="modal">
+    <h3>📚 Nuevo material</h3>
+    <div class="form-group"><label>Título</label><input type="text" id="mm-title" placeholder="Título"></div>
+    <div class="form-group"><label>Descripción</label><textarea id="mm-desc" rows="4" placeholder="Descripción…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-material')">Cancelar</button>
+      <button class="btn btn-primary" onclick="publishMaterial()">📤 Publicar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const CLIENT_ID = '943004296979-kkkdcdc2m0qvk6bo8p0rjeboboi0p2at.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.coursework.students https://www.googleapis.com/auth/classroom.student-submissions.me.readonly https://www.googleapis.com/auth/classroom.student-submissions.students.readonly https://www.googleapis.com/auth/classroom.rosters.readonly https://www.googleapis.com/auth/classroom.profile.emails https://www.googleapis.com/auth/classroom.courseworkmaterials';
+
+const S = { token:null, courses:[], courseId:null, courseName:'', cwList:[], subs:[], correctSubId:null, correctCwId:null, correctContent:'', generatedTask:'', generatedMaterial:'' };
+
+let tokenClient;
+window.onload = () => {
+  checkKey();
+  const iv = setInterval(() => {
+    if (window.google?.accounts) {
+      clearInterval(iv);
+      tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPES, callback: handleToken });
+    }
+  }, 200);
+};
+
+function signIn() { if (!tokenClient) { toast('Cargando…'); return; } tokenClient.requestAccessToken({ prompt: 'select_account' }); }
+
+function handleToken(resp) {
+  if (resp.error) { toast('Error: ' + resp.error, 'err'); return; }
+  S.token = resp.access_token;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('topbar').style.display = 'flex';
+  document.getElementById('app').style.display = 'flex';
+  fetchUser(); loadCourses();
+}
+
+function signOut() {
+  if (S.token) google.accounts.oauth2.revoke(S.token);
+  S.token = null;
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('topbar').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+}
+
+async function fetchUser() {
+  const r = await gFetch('https://www.googleapis.com/oauth2/v3/userinfo');
+  if (r) document.getElementById('cfg-user').textContent = `${r.name} (${r.email})`;
+}
+
+async function gFetch(url, opts = {}) {
+  const r = await fetch(url, { ...opts, headers: { 'Authorization': 'Bearer ' + S.token, 'Content-Type': 'application/json', ...(opts.headers||{}) } });
+  if (r.status === 401) { toast('Sesión expirada', 'err'); signOut(); return null; }
+  if (!r.ok) { const e = await r.json().catch(()=>({})); toast('Error: ' + (e.error?.message || r.status), 'err'); return null; }
+  if (r.status === 204) return {};
+  return r.json();
+}
+
+async function loadCourses() {
+  const d = await gFetch('https://classroom.googleapis.com/v1/courses?teacherId=me&courseStates=ACTIVE&pageSize=20');
+  if (!d) return;
+  S.courses = d.courses || [];
+  const sel = document.getElementById('course-select');
+  if (!S.courses.length) { sel.innerHTML = '<option value="">— Sin clases activas —</option>'; return; }
+  sel.innerHTML = '<option value="">— Selecciona una clase —</option>' + S.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+async function selectCourse(id) {
+  S.courseId = id;
+  S.courseName = S.courses.find(c => c.id === id)?.name || '';
+  if (!id) return;
+  document.getElementById('tasks-sub').textContent = S.courseName;
+  renderOverview();
+  await loadCW();
+  populateCwSelects();
+  const p = document.querySelector('.panel.active').id.replace('panel-','');
+  if (p === 'tasks') renderTaskList();
+  else if (p === 'materials') loadMaterials();
+}
+
+async function loadCW() {
+  if (!S.courseId) return;
+  const d = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork?orderBy=updateTime%20desc&pageSize=30`);
+  S.cwList = d?.courseWork || [];
+}
+
+function populateCwSelects() {
+  const opts = '<option value="">— Selecciona una tarea —</option>' + S.cwList.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+  document.getElementById('sub-task-sel').innerHTML = opts;
+  document.getElementById('ac-task').innerHTML = opts;
+}
+
+function renderOverview() {
+  const c = S.courses.find(c => c.id === S.courseId);
+  document.getElementById('overview-body').innerHTML = `
+    <div class="card">
+      <div class="card-title" style="font-size:1.1rem">${c.name}</div>
+      <div class="card-meta">${c.section||''} ${c.room ? '· Aula '+c.room : ''}</div>
+      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="showPanel('tasks')">📝 Tareas</button>
+        <button class="btn btn-ghost btn-sm" onclick="showPanel('submissions')">📬 Entregas</button>
+        <button class="btn btn-ghost btn-sm" onclick="showPanel('ai-task')">✨ Crear tarea</button>
+        <button class="btn btn-ghost btn-sm" onclick="showPanel('ai-correct')">🤖 Corregir</button>
+      </div>
+    </div>`;
+}
+
+async function renderTaskList() {
+  const el = document.getElementById('tasks-list');
+  if (!S.cwList.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>No hay tareas</p></div>'; return; }
+  el.innerHTML = S.cwList.map(t => `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${t.title}</div>
+          <div class="card-meta">${t.description ? t.description.substring(0,100) : ''}</div>
+          <div class="card-meta" style="margin-top:6px">${t.dueDate ? `📅 ${t.dueDate.day}/${t.dueDate.month}/${t.dueDate.year}` : 'Sin fecha'} · ${t.maxPoints||'—'} pts</div>
+        </div>
+        <div class="card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="goSubs('${t.id}')">📬 Entregas</button>
+          <button class="btn btn-ai btn-sm" onclick="goCorrect('${t.id}','${t.title.replace(/'/g,"\\'")}')">🤖 Corregir</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function publishTask() {
+  const title = document.getElementById('mt-title').value.trim();
+  const desc = document.getElementById('mt-desc').value.trim();
+  const due = document.getElementById('mt-due').value;
+  const pts = document.getElementById('mt-pts').value;
+  if (!title || !S.courseId) { toast('Falta título o clase', 'err'); return; }
+  const body = { title, description: desc, workType: 'ASSIGNMENT', state: 'PUBLISHED', maxPoints: parseInt(pts)||10 };
+  if (due) { const d = new Date(due); body.dueDate = { year: d.getUTCFullYear(), month: d.getUTCMonth()+1, day: d.getUTCDate() }; body.dueTime = { hours: 23, minutes: 59 }; }
+  const r = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork`, { method:'POST', body: JSON.stringify(body) });
+  if (r) { toast('Tarea publicada ✅', 'ok'); closeModal('modal-task'); await loadCW(); renderTaskList(); populateCwSelects(); }
+}
+
+function goSubs(cwId) { showPanel('submissions'); document.getElementById('sub-task-sel').value = cwId; loadSubmissions(cwId); }
+function goCorrect(cwId, title) { showPanel('ai-correct'); setTimeout(() => { document.getElementById('ac-task').value = cwId; document.getElementById('ac-title').value = title; loadCorrectSubs(cwId); }, 100); }
+
+async function loadMaterials() {
+  if (!S.courseId) return;
+  const d = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWorkMaterials?orderBy=updateTime%20desc&pageSize=30`);
+  const mats = d?.courseWorkMaterial || [];
+  const el = document.getElementById('materials-list');
+  if (!mats.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div><p>No hay materiales</p></div>'; return; }
+  el.innerHTML = mats.map(m => `<div class="card"><div class="card-title">${m.title}</div><div class="card-meta">${m.description||''}</div></div>`).join('');
+}
+
+async function publishMaterial() {
+  const title = document.getElementById('mm-title').value.trim();
+  const desc = document.getElementById('mm-desc').value.trim();
+  if (!title || !S.courseId) { toast('Falta título o clase', 'err'); return; }
+  const r = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWorkMaterials`, { method:'POST', body: JSON.stringify({ title, description: desc, state:'PUBLISHED' }) });
+  if (r) { toast('Material publicado ✅', 'ok'); closeModal('modal-material'); loadMaterials(); }
+}
+
+async function loadSubmissions(cwId) {
+  if (!cwId || !S.courseId) return;
+  S.currentCwId = cwId;
+  const el = document.getElementById('submissions-list');
+  el.innerHTML = '<div class="empty"><span class="spinner spinner-dark" style="width:28px;height:28px"></span></div>';
+  const d = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork/${cwId}/studentSubmissions?pageSize=50`);
+  S.subs = d?.studentSubmissions || [];
+  const named = await Promise.all(S.subs.map(async s => { s._name = await getName(s.userId); return s; }));
+  const stateLabel = { TURNED_IN:'Entregado', CREATED:'Sin entregar', RETURNED:'Devuelto', RECLAIMED_BY_STUDENT:'Retirado', NEW:'Nuevo' };
+  const stateCls = { TURNED_IN:'bg-green', CREATED:'bg-amber', RETURNED:'bg-blue', RECLAIMED_BY_STUDENT:'bg-red', NEW:'bg-gray' };
+  if (!named.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📬</div><p>No hay entregas</p></div>'; return; }
+  el.innerHTML = named.map(s => `
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">${s._name}</div>
+          <div style="margin-top:6px">
+            <span class="badge ${stateCls[s.state]||'bg-gray'}">${stateLabel[s.state]||s.state}</span>
+            ${s.assignedGrade != null ? `<span class="badge bg-purple" style="margin-left:6px">Nota: ${s.assignedGrade}</span>` : ''}
+          </div>
+        </div>
+        <div class="card-actions">
+          ${s.state==='TURNED_IN' ? `<button class="btn btn-ai btn-sm" onclick="quickCorrect('${s.id}','${cwId}')">🤖 Corregir</button>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function getName(userId) {
+  const r = await gFetch(`https://classroom.googleapis.com/v1/userProfiles/${userId}`);
+  return r?.name?.fullName || 'Alumno';
+}
+
+function quickCorrect(subId, cwId) {
+  S.correctSubId = subId; S.correctCwId = cwId;
+  showPanel('ai-correct');
+  setTimeout(() => { document.getElementById('ac-task').value = cwId; loadCorrectSubs(cwId, subId); }, 100);
+}
+
+async function loadCorrectSubs(cwId, preselectId) {
+  if (!cwId || !S.courseId) return;
+  S.correctCwId = cwId;
+  const d = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork/${cwId}/studentSubmissions?pageSize=50`);
+  const subs = d?.studentSubmissions?.filter(s => s.state === 'TURNED_IN') || [];
+  const named = await Promise.all(subs.map(async s => { s._name = await getName(s.userId); return s; }));
+  const sel = document.getElementById('ac-sub');
+  sel.innerHTML = '<option value="">— Selecciona alumno —</option>' + named.map(s => `<option value="${s.id}">${s._name}</option>`).join('');
+  if (preselectId) sel.value = preselectId;
+}
+
+async function loadSubForCorrection() {
+  const cwId = document.getElementById('ac-task').value;
+  const subId = document.getElementById('ac-sub').value;
+  if (!cwId || !subId) { toast('Selecciona tarea y alumno', 'err'); return; }
+  S.correctSubId = subId; S.correctCwId = cwId;
+  const d = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork/${cwId}/studentSubmissions/${subId}`);
+  let content = '';
+  if (d?.assignmentSubmission?.attachments) {
+    for (const att of d.assignmentSubmission.attachments) {
+      if (att.driveFile) content += `[Fichero: ${att.driveFile.title}]\n`;
+      if (att.link) content += `[Enlace: ${att.link.url}]\n`;
+    }
+  }
+  S.correctContent = content || '(Sin contenido extraíble — usa el campo de texto inferior)';
+  const name = document.getElementById('ac-sub').selectedOptions[0].text;
+  document.getElementById('ac-student').textContent = '📄 ' + name;
+  document.getElementById('ac-content').textContent = S.correctContent;
+  document.getElementById('ac-loaded').style.display = 'block';
+  toast('Entrega cargada', 'ok');
+}
+
+async function runCorrection() {
+  const text = document.getElementById('ac-paste').value || S.correctContent;
+  if (!text || text.length < 10) { toast('No hay texto. Usa el campo de texto inferior.', 'err'); return; }
+  const subject = document.querySelector('#ac-subject-pills .pill.active')?.textContent || 'Cultura Clásica';
+  const maxPts = document.getElementById('ac-maxpts').value || 10;
+  const title = document.getElementById('ac-title').value || 'Tarea';
+  const key = getKey(); if (!key) return;
+  const btn = document.getElementById('btn-correct');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Corrigiendo…';
+  const res = await callClaude(key,
+    `Eres un profesor experto en ${subject} en España, nivel ESO/Bachillerato. Corrige de forma pedagógica y constructiva en español. Estructura:\n✅ Valoración general\n💪 Puntos fuertes\n⚠️ Aspectos a mejorar\n💡 Sugerencias concretas\n📊 Nota propuesta: X/${maxPts} con justificación`,
+    `TAREA: "${title}"\n\nENTREGA:\n${text}`
+  );
+  btn.disabled = false; btn.innerHTML = '🤖 Corregir con IA';
+  if (res) {
+    document.getElementById('ac-output-text').textContent = res;
+    document.getElementById('ac-output').classList.add('show');
+    document.getElementById('ac-grade-row').style.display = 'block';
+    document.getElementById('ac-grade-max').textContent = '/ ' + maxPts;
+    const m = res.match(/(\d+(?:[.,]\d+)?)\s*\/\s*\d+/);
+    if (m) document.getElementById('ac-grade').value = m[1].replace(',','.');
+  }
+}
+
+async function submitGrade() {
+  const grade = parseFloat(document.getElementById('ac-grade').value);
+  if (isNaN(grade) || !S.correctSubId) { toast('Introduce una nota', 'err'); return; }
+  const url = `https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork/${S.correctCwId}/studentSubmissions/${S.correctSubId}?updateMask=assignedGrade,draftGrade`;
+  const r = await gFetch(url, { method:'PATCH', body: JSON.stringify({ assignedGrade: grade, draftGrade: grade }) });
+  if (r !== null) {
+    await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork/${S.correctCwId}/studentSubmissions/${S.correctSubId}:return`, { method:'POST', body:'{}' });
+    toast('Calificado y devuelto ✅', 'ok');
+  }
+}
+
+async function runCreateTask() {
+  const key = getKey(); if (!key) return;
+  const topic = document.getElementById('at-topic').value.trim();
+  if (!topic) { toast('Indica el tema', 'err'); return; }
+  const btn = document.getElementById('btn-at');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generando…';
+  const res = await callClaude(key,
+    `Eres un profesor experto en ${document.getElementById('at-subject').value} en España, nivel ${document.getElementById('at-level').value}. Crea materiales educativos de alta calidad en español con Markdown.`,
+    `Crea una tarea de tipo "${document.getElementById('at-type').value}" sobre: "${topic}". Duración: ${document.getElementById('at-duration').value||'una sesión'}.\nIncluye: 1.Título 2.Descripción e instrucciones 3.Objetivos 4.Rúbrica sencilla 5.Puntuación sugerida`
+  );
+  btn.disabled = false; btn.innerHTML = '✨ Generar tarea';
+  if (res) { S.generatedTask = res; document.getElementById('at-output-text').textContent = res; document.getElementById('at-output').classList.add('show'); document.getElementById('at-post').style.display = 'block'; }
+}
+
+async function publishGeneratedTask() {
+  if (!S.courseId) { toast('Selecciona una clase', 'err'); return; }
+  const title = S.generatedTask.split('\n').find(l => l.trim()).replace(/^#+\s*/,'').substring(0,100);
+  const r = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWork`,
+    { method:'POST', body: JSON.stringify({ title, description: S.generatedTask.substring(0,3000), workType:'ASSIGNMENT', state:'PUBLISHED', maxPoints:10 }) });
+  if (r) { toast('Publicado en Classroom ✅', 'ok'); await loadCW(); populateCwSelects(); renderTaskList(); }
+}
+
+async function runCreateMaterial() {
+  const key = getKey(); if (!key) return;
+  const topic = document.getElementById('am-topic').value.trim();
+  if (!topic) { toast('Indica el tema', 'err'); return; }
+  const type = document.querySelector('#am-type-pills .pill.active')?.textContent.replace(/^[^\w]+/,'').trim() || 'Apuntes';
+  const btn = document.getElementById('btn-am');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generando…';
+  const res = await callClaude(key,
+    `Eres un profesor experto en ${document.getElementById('am-subject').value} en España, nivel ${document.getElementById('am-level').value}. Crea materiales completos y rigurosos en español con Markdown.`,
+    `Crea un ${type} sobre: "${topic}". Completo y listo para usar en clase.`
+  );
+  btn.disabled = false; btn.innerHTML = '✨ Generar material';
+  if (res) { S.generatedMaterial = res; document.getElementById('am-output-text').textContent = res; document.getElementById('am-output').classList.add('show'); document.getElementById('am-post').style.display = 'block'; }
+}
+
+async function publishGeneratedMaterial() {
+  if (!S.courseId) { toast('Selecciona una clase', 'err'); return; }
+  const title = S.generatedMaterial.split('\n').find(l => l.trim()).replace(/^#+\s*/,'').substring(0,100);
+  const r = await gFetch(`https://classroom.googleapis.com/v1/courses/${S.courseId}/courseWorkMaterials`,
+    { method:'POST', body: JSON.stringify({ title, description: S.generatedMaterial.substring(0,3000), state:'PUBLISHED' }) });
+  if (r) toast('Material publicado ✅', 'ok');
+}
+
+async function runQuestions() {
+  const key = getKey(); if (!key) return;
+  const topic = document.getElementById('aq-topic').value.trim();
+  if (!topic) { toast('Indica el tema', 'err'); return; }
+  const btn = document.getElementById('btn-aq');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Generando…';
+  const res = await callClaude(key,
+    `Eres un profesor experto en ${document.getElementById('aq-subject').value} en España, nivel ${document.getElementById('aq-level').value}. Crea preguntas de evaluación claras en español con Markdown.`,
+    `Genera ${document.getElementById('aq-num').value||5} preguntas de tipo "${document.querySelector('#aq-type-pills .pill.active')?.textContent||'Respuesta corta'}" sobre: "${topic}". Para cada pregunta incluye respuesta o criterios de corrección.`
+  );
+  btn.disabled = false; btn.innerHTML = '✨ Generar preguntas';
+  if (res) { document.getElementById('aq-output-text').textContent = res; document.getElementById('aq-output').classList.add('show'); }
+}
+
+async function callClaude(key, system, user) {
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key': key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:2000, system, messages:[{ role:'user', content:user }] })
+    });
+    const d = await r.json();
+    if (d.error) { toast('Error IA: ' + d.error.message, 'err'); return null; }
+    return d.content?.[0]?.text || null;
+  } catch(e) { toast('Error de red: ' + e.message, 'err'); return null; }
+}
+
+function saveKey() {
+  const k = document.getElementById('cfg-key').value.trim();
+  if (!k) { toast('Introduce una API key', 'err'); return; }
+  localStorage.setItem('anthropic_key', k); checkKey(); toast('API Key guardada ✅', 'ok');
+}
+function checkKey() {
+  const k = localStorage.getItem('anthropic_key');
+  const el = document.getElementById('key-status');
+  if (el) el.textContent = k ? `✅ Configurada (${k.substring(0,10)}…)` : '❌ No configurada';
+}
+function getKey() {
+  const k = localStorage.getItem('anthropic_key');
+  if (!k) { toast('Configura tu API Key en ⚙️ Config', 'err'); return null; }
+  return k;
+}
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const nav = document.getElementById('nav-' + name);
+  if (nav) nav.classList.add('active');
+  if (!S.courseId) return;
+  if (name === 'tasks') renderTaskList();
+  else if (name === 'materials') loadMaterials();
+  else if (name === 'submissions') populateCwSelects();
+  else if (name === 'ai-correct') { if (document.getElementById('ac-task').options.length <= 1) populateCwSelects(); }
+  else if (name === 'config') checkKey();
+}
+
+function setPill(el, group) { document.querySelectorAll(`#${group} .pill`).forEach(p => p.classList.remove('active')); el.classList.add('active'); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg => bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); }));
+
+let toastT;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastT); toastT = setTimeout(() => el.className = '', 3500);
+}
+</script>
+</body>
+</html>
